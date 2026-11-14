@@ -14,7 +14,7 @@ body {
 }
 main {
   max-width: 420px;
-  margin: 80px auto;
+  margin: 70px auto;
   padding: 30px;
   background: white;
   border-radius: 18px;
@@ -24,50 +24,74 @@ main {
 button {
   width: 100%;
   padding: 15px;
-  background: #2878e8;
-  color: white;
   border: 0;
   border-radius: 9px;
   font-size: 16px;
+  cursor: pointer;
 }
+#agree {
+  background: #2878e8;
+  color: white;
+}
+#decline {
+  background: #e9edf2;
+  color: #333;
+  margin-top: 10px;
+}
+p { line-height: 1.8; color: #666; }
 </style>
 </head>
 <body>
 <main>
-<h1>確認用サイト</h1>
-<p>位置情報確認ページ</p>
-<p>位置情報を送信すると、管理者専用ページで確認できます。</p>
-<label>
-<input type="checkbox" id="agree">
-位置情報の取得と管理者への送信に同意します。
-</label>
-<br><br>
-<button onclick="getLocation()">現在地を確認する</button>
-<p id="result">同意した場合のみ取得できます。</p>
+  <h1>確認用サイト</h1>
+  <p>位置情報の確認ページ</p>
+
+  <h3>位置情報を取得してもよろしいですか？</h3>
+
+  <p>
+    同意すると、いろいろ起こります。
+  </p>
+
+  <button id="agree">同意する</button>
+  <button id="decline">同意しない</button>
+
+  <p id="status" role="status">
+    どちらかを選択してください。
+  </p>
 </main>
+
 <script>
-function getLocation() {
-  const result = document.getElementById("result");
-  if (!document.getElementById("agree").checked) {
-    result.textContent = "先に同意してください。";
-    return;
-  }
+const status = document.getElementById("status");
+
+document.getElementById("agree").onclick = () => {
+  status.textContent =
+    "同意を確認しました。位置情報を取得する場合は、ブラウザの許可も必要です。";
+
   if (!navigator.geolocation) {
-    result.textContent = "位置情報に対応していません。";
+    status.textContent = "このブラウザでは位置情報を利用できません。";
     return;
   }
-  result.textContent = "位置情報を確認しています...";
+
   navigator.geolocation.getCurrentPosition(
-    p => {
-      result.textContent =
-        "緯度：" + p.coords.latitude +
-        " / 経度：" + p.coords.longitude;
+    position => {
+      status.textContent =
+        "位置情報を取得しました。緯度：" +
+        position.coords.latitude +
+        "、経度：" +
+        position.coords.longitude +
+        "。まだサーバーには送信されていません。";
     },
     () => {
-      result.textContent = "位置情報を取得できませんでした。";
+      status.textContent =
+        "位置情報を取得できませんでした。";
     }
   );
-}
+};
+
+document.getElementById("decline").onclick = () => {
+  status.textContent =
+    "同意しなかったため、位置情報は取得しません。";
+};
 </script>
 </body>
 </html>
