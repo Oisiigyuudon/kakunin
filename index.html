@@ -14,8 +14,8 @@ body {
 }
 main {
   max-width: 420px;
-  margin: 70px auto;
-  padding: 30px;
+  margin: 60px auto;
+  padding: 28px;
   background: white;
   border-radius: 18px;
   text-align: center;
@@ -24,62 +24,69 @@ main {
 button {
   width: 100%;
   padding: 15px;
+  margin-top: 12px;
   border: 0;
   border-radius: 9px;
   font-size: 16px;
   cursor: pointer;
 }
-#agree {
+.primary {
   background: #2878e8;
   color: white;
 }
-#decline {
+.secondary {
   background: #e9edf2;
   color: #333;
-  margin-top: 10px;
 }
 p { line-height: 1.8; color: #666; }
+#send { display: none; }
 </style>
 </head>
 <body>
 <main>
-  <h1>確認用サイト</h1>
-  <p>位置情報の確認ページ</p>
+<h1>確認用サイト</h1>
+<h3>位置情報を取得してもよろしいですか？</h3>
+<p>
+同意すると、いろいろ起こります。
+</p>
 
-  <h3>位置情報を取得してもよろしいですか？</h3>
+<button class="primary" id="agree">同意する</button>
+<button class="secondary" id="decline">同意しない</button>
 
-  <p>
-    同意すると、いろいろ起こります。
-  </p>
+<p id="status">選択してください。</p>
 
-  <button id="agree">同意する</button>
-  <button id="decline">同意しない</button>
-
-  <p id="status" role="status">
-    どちらかを選択してください。
-  </p>
+<button class="primary" id="send">
+この位置情報を送信する
+</button>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script>
+const db = window.supabase.createClient(
+  APP_CONFIG.url,
+  APP_CONFIG.anonKey
+);
+
 const status = document.getElementById("status");
+const sendButton = document.getElementById("send");
+
+let positionData = null;
 
 document.getElementById("agree").onclick = () => {
-  status.textContent =
-    "同意を確認しました。位置情報を取得する場合は、ブラウザの許可も必要です。";
+  positionData = null;
+  sendButton.style.display = "none";
 
-  if (!navigator.geolocation) {
-    status.textContent = "このブラウザでは位置情報を利用できません。";
-    return;
-  }
+  status.textContent = "位置情報を確認しています...";
 
   navigator.geolocation.getCurrentPosition(
     position => {
+      positionData = position.coords;
+
       status.textContent =
-        "位置情報を取得しました。緯度：" +
-        position.coords.latitude +
-        "、経度：" +
-        position.coords.longitude +
-        "。まだサーバーには送信されていません。";
+        "位置情報を取得しました。送信する場合は下のボタンを押してください。";
+
+      sendButton.style.display = "block";
     },
     () => {
       status.textContent =
@@ -89,8 +96,36 @@ document.getElementById("agree").onclick = () => {
 };
 
 document.getElementById("decline").onclick = () => {
-  status.textContent =
-    "同意しなかったため、位置情報は取得しません。";
+  positionData = null;
+  sendButton.style.display = "none";
+  status.textContent = "同意しなかったため取得しません。";
+};
+
+sendButton.onclick = async () => {
+  if (!positionData) return;
+
+  sendButton.disabled = true;
+  status.textContent = "送信しています...";
+
+  const { error } = await db
+    .from("locations")
+    .insert({
+      latitude: positionData.latitude,
+      longitude: positionData.longitude,
+      accuracy: positionData.accuracy,
+      consented_at: new Date().toISOString()
+    });
+
+  if (error) {
+    status.textContent =
+      "送信できませんでした。設定を確認してください。";
+    sendButton.disabled = false;
+    return;
+  }
+
+  positionData = null;
+  sendButton.style.display = "none";
+  status.textContent = "送信が完了しました。ありがとうございます。";
 };
 </script>
 </body>
